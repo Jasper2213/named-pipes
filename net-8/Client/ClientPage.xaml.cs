@@ -18,13 +18,14 @@ public partial class ClientPage : ContentPage {
         InitPipeClient();
     }
 
-    private void InitPipeClient() {
+    private async void InitPipeClient() {
         if (_isConnected) {
             return;
         }
 
-        if (!_pipeClient.IsConnected)
-            _pipeClient.Connect();
+        if (!_pipeClient.IsConnected) {
+            await _pipeClient.ConnectAsync().ConfigureAwait(false);
+        }
 
         _isConnected = true;
 
