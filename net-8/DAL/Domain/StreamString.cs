@@ -2,37 +2,34 @@ using System.Text;
 
 namespace DAL.Domain;
 
-public class StreamString {
-    private readonly Stream _ioStream;
-    private readonly UnicodeEncoding _streamEncoding = new();
+public class StreamString(Stream ioStream)
+{
+    private readonly Stream ioStream = ioStream;
+    private readonly UnicodeEncoding streamEncoding = new();
 
-    public StreamString(Stream ioStream) {
-        _ioStream = ioStream;
+    public string ReadString()
+    {
+        int len = ioStream.ReadByte() * 256;
+        len += ioStream.ReadByte();
+        byte[] inBuffer = new byte[len];
+        ioStream.Read(inBuffer, 0, len);
+
+        return streamEncoding.GetString(inBuffer);
     }
 
-    public string ReadString() {
-        var lenBuffer = new byte[sizeof(int)];
-        _ioStream.Read(lenBuffer, 0, sizeof(int));
-        var stringLen = BitConverter.ToInt32(lenBuffer, 0);
-
-        var inBuffer = new byte[stringLen];
-        _ioStream.Read(inBuffer, 0, stringLen);
-
-        return _streamEncoding.GetString(inBuffer);
-    }
-
-    public int WriteString(string outString) {
-        var outBuffer = _streamEncoding.GetBytes(outString);
-        var len = outBuffer.Length;
-        if (len > ushort.MaxValue) {
+    public int WriteString(string outString)
+    {
+        byte[] outBuffer = streamEncoding.GetBytes(outString);
+        int len = outBuffer.Length;
+        if (len > ushort.MaxValue)
+        {
             len = ushort.MaxValue;
         }
+        ioStream.WriteByte((byte)(len / 256));
+        ioStream.WriteByte((byte)(len & 255));
+        ioStream.Write(outBuffer, 0, len);
+        ioStream.Flush();
 
-        var lenBuffer = BitConverter.GetBytes(len);
-        _ioStream.Write(lenBuffer, 0, sizeof(int));
-        _ioStream.Write(outBuffer, 0, len);
-        _ioStream.Flush();
-
-        return outBuffer.Length + sizeof(int);
+        return outBuffer.Length + 2;
     }
 }
